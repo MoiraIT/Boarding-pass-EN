@@ -1,0 +1,568 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Printable Gift Boarding Pass – Fill In and Print</title>
+<meta name="description" content="Create your own gift boarding pass: enter a name, destination, date and a photo, then print or save as PDF.">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ctext y='.9em' font-size='90'%3E✈️%3C/text%3E%3C/svg%3E">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@600;700&family=Figtree:wght@400;500;600;700&display=swap" rel="stylesheet">
+
+<style id="pageStyle">@page { size: letter landscape; margin: 10mm; }</style>
+<style>
+  :root {
+    --accent: #0f766e;
+    --ink: #172033;
+    --muted: #5d6b82;
+    --paper: #fffefa;
+    --line: #cfd6df;
+    --stage: #e4e9ef;
+    --ui-bg: #f5f7fa;
+    --ui-border: #d5dce5;
+    --print-w: 200mm; /* 20 x 8 cm (7.9 x 3.1 in), ratio 2.5:1 */
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    font-family: 'Figtree', system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+    color: var(--ink);
+    background: var(--ui-bg);
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+
+  /* ---------- App page ---------- */
+  header.top { max-width: 1280px; margin: 0 auto; padding: 28px 24px 0; }
+  header.top h1 { margin: 0 0 6px; font-size: 1.6rem; line-height: 1.2; }
+  header.top p { margin: 0; color: var(--muted); max-width: 60ch; }
+
+  .app {
+    max-width: 1280px; margin: 0 auto; padding: 20px 24px 48px;
+    display: grid; grid-template-columns: minmax(300px, 380px) 1fr; gap: 24px; align-items: start;
+  }
+  .controls {
+    background: #fff; border: 1px solid var(--ui-border); border-radius: 14px; padding: 18px;
+  }
+  fieldset { border: 0; margin: 0 0 18px; padding: 0; }
+  legend { font-weight: 700; font-size: 1rem; padding: 0; margin-bottom: 10px; }
+  .row2 { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+  .row2.codes { grid-template-columns: 1fr 88px; }
+  label.f { display: block; margin-bottom: 10px; font-size: .85rem; color: var(--muted); }
+  label.f input, label.f select, label.f textarea {
+    display: block; width: 100%; margin-top: 4px; padding: 9px 10px;
+    font: inherit; font-size: 1rem; color: var(--ink);
+    border: 1px solid var(--ui-border); border-radius: 8px; background: #fff;
+  }
+  label.f textarea { resize: vertical; min-height: 64px; }
+  input.code { text-transform: uppercase; letter-spacing: .08em; text-align: center; }
+  :focus-visible { outline: 3px solid #2563eb; outline-offset: 2px; }
+
+  .swatches { display: flex; gap: 10px; flex-wrap: wrap; }
+  .swatches label { cursor: pointer; font-size: .85rem; color: var(--muted); display: flex; align-items: center; gap: 6px; }
+  .swatches input { position: absolute; opacity: 0; }
+  .swatches .dot { width: 26px; height: 26px; border-radius: 50%; border: 3px solid #fff; box-shadow: 0 0 0 1px var(--ui-border); }
+  .swatches input:checked + .dot { box-shadow: 0 0 0 2px var(--ink); }
+  .swatches input:focus-visible + .dot { outline: 3px solid #2563eb; outline-offset: 2px; }
+
+  .photo-row { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+  .btn {
+    font: inherit; font-weight: 600; font-size: .95rem; cursor: pointer;
+    border: 1px solid var(--ui-border); background: #fff; color: var(--ink);
+    padding: 9px 14px; border-radius: 8px;
+  }
+  .btn:hover { background: var(--ui-bg); }
+  .btn.primary { background: var(--accent); border-color: var(--accent); color: #fff; width: 100%; padding: 12px; font-size: 1.05rem; }
+  .btn.primary:hover { filter: brightness(1.08); }
+  .actions { display: grid; gap: 8px; }
+  .hint { font-size: .82rem; color: var(--muted); margin: 10px 0 0; line-height: 1.45; }
+
+  .demo-box {
+    display: none; margin-top: 14px; padding: 12px 14px; border-radius: 10px;
+    background: #fff7e0; border: 1px solid #f0d58a; font-size: .9rem; line-height: 1.45;
+  }
+  .demo-box.on { display: block; }
+  .demo-box a { display: inline-block; margin-top: 8px; font-weight: 700; color: var(--ink); }
+
+  .preview { position: sticky; top: 16px; min-width: 0; }
+  .stage { background: var(--stage); border-radius: 14px; padding: 22px; overflow-x: auto; }
+  .preview-title { margin: 0 0 10px; font-size: .9rem; color: var(--muted); }
+
+  /* ---------- Ticket ---------- */
+  .sheet { container-type: inline-size; min-width: 680px; width: 100%; }
+  .ticket {
+    position: relative; display: flex; flex-direction: column;
+    width: 100%; aspect-ratio: 2.5 / 1;
+    background: var(--paper); color: var(--ink);
+    border-radius: 1.4cqw; overflow: hidden;
+    box-shadow: 0 1.2cqw 3cqw rgba(23, 32, 51, .18);
+  }
+  .ticket::before, .ticket::after {
+    content: ''; position: absolute; left: calc(73% - 1.5cqw);
+    width: 3cqw; height: 3cqw; border-radius: 50%; background: var(--stage); z-index: 2;
+  }
+  .ticket::before { top: -1.5cqw; }
+  .ticket::after { bottom: -1.5cqw; }
+
+  .band {
+    background: var(--accent); color: #fff; height: 4.6cqw; flex: none;
+    display: flex; align-items: center; justify-content: space-between; padding: 0 2.2cqw;
+  }
+  .airline { display: flex; align-items: center; gap: .9cqw; font-size: 1.9cqw; font-weight: 700; }
+  .airline svg { width: 2.3cqw; height: 2.3cqw; fill: #fff; transform: rotate(45deg); }
+  .doc { font-size: 1.5cqw; font-weight: 500; opacity: .92; }
+
+  .row { flex: 1; display: flex; min-height: 0; }
+  .main { flex: 0 0 73%; display: flex; flex-direction: column; min-width: 0; }
+  .body { flex: 1; display: flex; gap: 2cqw; padding: 2cqw 2.2cqw 2cqw; min-height: 0; }
+  .photo {
+    display: none; flex: 0 0 24%; border-radius: .8cqw;
+    background-color: #dfe5ec; background-size: cover; background-position: center;
+  }
+  .photo.on { display: block; }
+  .info { flex: 1; display: flex; flex-direction: column; justify-content: space-between; min-width: 0; }
+
+  small.lb { display: block; font-size: 1.1cqw; color: var(--muted); margin-bottom: .2cqw; font-weight: 500; }
+  .val { font-size: 1.8cqw; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+
+  .route { display: flex; align-items: center; gap: 1.8cqw; }
+  .city { min-width: 0; }
+  .city b {
+    display: block; font-family: 'Barlow Condensed', 'Arial Narrow', sans-serif;
+    font-size: 6.4cqw; line-height: .95; font-weight: 700; letter-spacing: .01em;
+  }
+  .city span { display: block; font-size: 1.5cqw; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 17cqw; }
+  .route svg { flex: none; width: 3.2cqw; height: 3.2cqw; fill: var(--accent); transform: rotate(90deg); }
+
+  .grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 1cqw 1.6cqw; }
+  .grid .w2 { grid-column: span 2; }
+
+  .msg {
+    margin: 0; padding-left: 1.2cqw; border-left: .35cqw solid var(--accent);
+    font-size: 1.5cqw; line-height: 1.35;
+    display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;
+  }
+  .msg.empty { visibility: hidden; }
+
+  .foot {
+    height: 3cqw; flex: none; padding: 0 2.2cqw; display: flex; align-items: center;
+    font-size: 1.15cqw; color: var(--muted); border-top: .12cqw solid var(--line);
+  }
+
+  .stub {
+    flex: 1; min-width: 0; padding: 1.8cqw 2cqw 1.6cqw; display: flex; flex-direction: column; justify-content: space-between;
+    border-left: .25cqw dashed var(--line);
+    background: color-mix(in srgb, var(--accent) 6%, var(--paper));
+  }
+  .stub .codes {
+    font-family: 'Barlow Condensed', 'Arial Narrow', sans-serif; font-weight: 700; font-size: 4cqw; line-height: 1;
+    display: flex; align-items: center; gap: 1cqw;
+  }
+  .stub .codes svg { width: 2.2cqw; height: 2.2cqw; fill: var(--accent); transform: rotate(90deg); }
+  .stub .grid { grid-template-columns: repeat(2, 1fr); }
+  .stub .val { font-size: 1.6cqw; }
+  .barcode { height: 5.4cqw; color: var(--ink); }
+  .barcode svg { width: 100%; height: 100%; display: block; fill: currentColor; }
+
+  .wm {
+    display: none; position: absolute; inset: 0; z-index: 3; pointer-events: none;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='300' height='150'%3E%3Ctext x='150' y='85' text-anchor='middle' font-family='Arial,sans-serif' font-size='22' font-weight='700' fill='rgba(23,32,51,0.16)' transform='rotate(-22 150 75)'%3ESAMPLE%3C/text%3E%3C/svg%3E");
+    background-size: 22cqw auto;
+  }
+  .wm.on { display: block; }
+
+  /* ---------- Responsive ---------- */
+  @media (max-width: 900px) {
+    .app { grid-template-columns: 1fr; padding: 16px; }
+    .preview { position: static; order: -1; }
+    header.top { padding: 20px 16px 0; }
+    .stage { padding: 14px; }
+  }
+
+  /* ---------- Print ---------- */
+  @media print {
+    :root { --stage: #fff; }
+    body { background: #fff; }
+    header.top, .controls, .preview-title { display: none !important; }
+    .app { display: block; padding: 0; margin: 0; max-width: none; }
+    .preview { position: static; }
+    .stage { background: #fff; padding: 0; overflow: visible; border-radius: 0; }
+    .sheet { min-width: 0; width: var(--print-w); margin: 0; }
+    .ticket { box-shadow: none; border: .2mm solid var(--line); }
+  }
+</style>
+</head>
+<body>
+
+<header class="top">
+  <h1 data-i18n="pageTitle"></h1>
+  <p data-i18n="pageIntro"></p>
+</header>
+
+<main class="app">
+  <form class="controls" id="f" autocomplete="off">
+
+    <fieldset>
+      <legend data-i18n="legAirline"></legend>
+      <label class="f"><span data-i18n="lblAirline"></span>
+        <input type="text" id="airline" value="Gift Airlines" maxlength="26">
+      </label>
+      <label class="f"><span data-i18n="lblPassenger"></span>
+        <input type="text" id="passenger" value="Emma Carter" maxlength="30">
+      </label>
+    </fieldset>
+
+    <fieldset>
+      <legend data-i18n="legRoute"></legend>
+      <div class="row2 codes">
+        <label class="f"><span data-i18n="lblFromCity"></span>
+          <input type="text" id="fromCity" value="New York" maxlength="20">
+        </label>
+        <label class="f"><span data-i18n="lblCode"></span>
+          <input type="text" id="fromCode" class="code" value="JFK" maxlength="3">
+        </label>
+      </div>
+      <div class="row2 codes">
+        <label class="f"><span data-i18n="lblToCity"></span>
+          <input type="text" id="toCity" value="Paris" maxlength="20">
+        </label>
+        <label class="f"><span data-i18n="lblCode"></span>
+          <input type="text" id="toCode" class="code" value="CDG" maxlength="3">
+        </label>
+      </div>
+    </fieldset>
+
+    <fieldset>
+      <legend data-i18n="legFlight"></legend>
+      <div class="row2">
+        <label class="f"><span data-i18n="lblDate"></span>
+          <input type="date" id="date" value="2027-06-12">
+        </label>
+        <label class="f"><span data-i18n="lblBoarding"></span>
+          <input type="time" id="boarding" value="07:45">
+        </label>
+      </div>
+      <div class="row2">
+        <label class="f"><span data-i18n="lblFlight"></span>
+          <input type="text" id="flight" value="GA 482" maxlength="8">
+        </label>
+        <label class="f"><span data-i18n="lblClass"></span>
+          <input type="text" id="cls" value="Business" maxlength="14">
+        </label>
+      </div>
+      <div class="row2">
+        <label class="f"><span data-i18n="lblGate"></span>
+          <input type="text" id="gate" value="B12" maxlength="5">
+        </label>
+        <label class="f"><span data-i18n="lblSeat"></span>
+          <input type="text" id="seat" value="14A" maxlength="5">
+        </label>
+      </div>
+    </fieldset>
+
+    <fieldset>
+      <legend data-i18n="legMessage"></legend>
+      <label class="f"><span data-i18n="lblMessage"></span>
+        <textarea id="message" maxlength="110">Happy birthday! Pack your bags: three days in Paris are waiting for you.</textarea>
+      </label>
+      <div class="photo-row">
+        <button type="button" class="btn" id="photoBtn" data-i18n="btnAddPhoto"></button>
+        <button type="button" class="btn" id="photoDel" data-i18n="btnRemovePhoto" hidden></button>
+        <input type="file" id="image" accept="image/*" hidden>
+      </div>
+      <p class="hint" data-i18n="hintPrivacy"></p>
+      <p class="hint" data-i18n-html="hintPhotoFormat"></p>
+    </fieldset>
+
+    <fieldset>
+      <legend data-i18n="legLook"></legend>
+      <div class="swatches" role="radiogroup" id="swatchGroup">
+        <label><input type="radio" name="tema" value="#0f766e" checked><span class="dot" style="background:#0f766e"></span><span data-i18n="colorOcean"></span></label>
+        <label><input type="radio" name="tema" value="#1e3a8a"><span class="dot" style="background:#1e3a8a"></span><span data-i18n="colorNight"></span></label>
+        <label><input type="radio" name="tema" value="#9f1239"><span class="dot" style="background:#9f1239"></span><span data-i18n="colorBurgundy"></span></label>
+        <label><input type="radio" name="tema" value="#4d6b3f"><span class="dot" style="background:#4d6b3f"></span><span data-i18n="colorSage"></span></label>
+      </div>
+      <label class="f" style="margin-top:14px"><span data-i18n="lblPaper"></span>
+        <select id="paper">
+          <option value="letter" data-i18n="paperLetter"></option>
+          <option value="a4" data-i18n="paperA4"></option>
+        </select>
+      </label>
+    </fieldset>
+
+    <div class="actions">
+      <button type="button" class="btn primary" id="printBtn" data-i18n="btnPrint"></button>
+      <button type="reset" class="btn" data-i18n="btnReset"></button>
+    </div>
+    <p class="hint" data-i18n="hintPrint"></p>
+
+    <div class="demo-box" id="demoBox">
+      <span data-i18n="demoText"></span>
+      <br><a id="buyLink" href="#" target="_blank" rel="noopener" data-i18n="demoLink"></a>
+    </div>
+  </form>
+
+  <section class="preview">
+    <p class="preview-title" data-i18n="previewTitle"></p>
+    <div class="stage">
+      <div class="sheet" id="sheet">
+        <div class="ticket" id="ticket">
+
+          <div class="band">
+            <span class="airline">
+              <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M21 16v-2l-8-5V3.5a1.5 1.5 0 0 0-3 0V9l-8 5v2l8-2.5V19l-2 1.5V22l3.5-1 3.5 1v-1.5L13 19v-5.5z"/></svg>
+              <span data-bind="airline"></span>
+            </span>
+            <span class="doc" data-i18n="tBoardingPass"></span>
+          </div>
+
+          <div class="row">
+            <div class="main">
+              <div class="body">
+                <div class="photo" id="photo"></div>
+                <div class="info">
+                  <div class="route">
+                    <div class="city">
+                      <small class="lb" data-i18n="tFrom"></small>
+                      <b data-bind="fromCode"></b>
+                      <span data-bind="fromCity"></span>
+                    </div>
+                    <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M21 16v-2l-8-5V3.5a1.5 1.5 0 0 0-3 0V9l-8 5v2l8-2.5V19l-2 1.5V22l3.5-1 3.5 1v-1.5L13 19v-5.5z"/></svg>
+                    <div class="city">
+                      <small class="lb" data-i18n="tTo"></small>
+                      <b data-bind="toCode"></b>
+                      <span data-bind="toCity"></span>
+                    </div>
+                  </div>
+
+                  <div class="grid">
+                    <div class="w2"><small class="lb" data-i18n="tPassenger"></small><div class="val" data-bind="passenger"></div></div>
+                    <div><small class="lb" data-i18n="tDate"></small><div class="val" data-bind="date"></div></div>
+                    <div><small class="lb" data-i18n="tClass"></small><div class="val" data-bind="cls"></div></div>
+                    <div><small class="lb" data-i18n="tFlight"></small><div class="val" data-bind="flight"></div></div>
+                    <div><small class="lb" data-i18n="tBoarding"></small><div class="val" data-bind="boarding"></div></div>
+                    <div><small class="lb" data-i18n="tGate"></small><div class="val" data-bind="gate"></div></div>
+                    <div><small class="lb" data-i18n="tSeat"></small><div class="val" data-bind="seat"></div></div>
+                  </div>
+
+                  <p class="msg" id="msg" data-bind="message"></p>
+                </div>
+              </div>
+            </div>
+
+            <div class="stub">
+              <div>
+                <small class="lb" data-i18n="tPassenger"></small>
+                <div class="val" data-bind="passenger"></div>
+              </div>
+              <div class="codes">
+                <span data-bind="fromCode"></span>
+                <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M21 16v-2l-8-5V3.5a1.5 1.5 0 0 0-3 0V9l-8 5v2l8-2.5V19l-2 1.5V22l3.5-1 3.5 1v-1.5L13 19v-5.5z"/></svg>
+                <span data-bind="toCode"></span>
+              </div>
+              <div class="grid">
+                <div><small class="lb" data-i18n="tFlight"></small><div class="val" data-bind="flight"></div></div>
+                <div><small class="lb" data-i18n="tDate"></small><div class="val" data-bind="date"></div></div>
+                <div><small class="lb" data-i18n="tGate"></small><div class="val" data-bind="gate"></div></div>
+                <div><small class="lb" data-i18n="tSeat"></small><div class="val" data-bind="seat"></div></div>
+              </div>
+              <div class="barcode" id="barcode" aria-hidden="true"></div>
+            </div>
+          </div>
+
+          <div class="wm" id="wm"></div>
+        </div>
+      </div>
+    </div>
+  </section>
+</main>
+
+<script>
+  /* ====== SETTINGS ======
+     DEMO_MODE = true  -> watermark on print + purchase box
+     DEMO_MODE = false -> full version, no watermark (Etsy product)
+     PURCHASE_LINK     -> URL of the full-version listing (only used in demo mode) */
+  const DEMO_MODE = false;
+  const PURCHASE_LINK = "#";
+
+  /* ====== STRINGS ======
+     All visible text lives here. To add a language, copy the "en" block,
+     translate the values, and set LANG to the new key.
+     Remember to also update <html lang>, the <title> and the meta description. */
+  const STRINGS = {
+    en: {
+      locale: "en-US",
+      pageTitle: "Gift Boarding Pass to Fill In and Print",
+      pageIntro: "Enter the trip details, add a photo and save the boarding pass as a PDF. The preview updates as you type.",
+      legAirline: "Airline and passenger",
+      lblAirline: "Airline name",
+      lblPassenger: "Passenger name",
+      legRoute: "Route",
+      lblFromCity: "Departure city",
+      lblToCity: "Arrival city",
+      lblCode: "Code",
+      legFlight: "Flight details",
+      lblDate: "Date",
+      lblBoarding: "Boarding time",
+      lblFlight: "Flight number",
+      lblClass: "Class",
+      lblGate: "Gate",
+      lblSeat: "Seat",
+      legMessage: "Message and photo",
+      lblMessage: "Personal message",
+      btnAddPhoto: "Add photo",
+      btnRemovePhoto: "Remove photo",
+      hintPrivacy: "Your photo stays on your device: it is never uploaded anywhere.",
+      hintPhotoFormat: "Recommended format: <b>portrait, 1:2 ratio</b> (half as wide as it is tall), for example 600 × 1200 px. Other proportions are automatically centered and cropped.",
+      legLook: "Look",
+      colorOcean: "Ocean",
+      colorNight: "Midnight",
+      colorBurgundy: "Burgundy",
+      colorSage: "Sage",
+      lblPaper: "Print format",
+      paperLetter: "US Letter landscape",
+      paperA4: "A4 landscape",
+      btnPrint: "Print or save as PDF",
+      btnReset: "Reset to example",
+      hintPrint: "In the print dialog keep the scale at 100% (Default): the ticket prints at 7.9 × 3.1 in (20 × 8 cm). To save as PDF choose “Save as PDF” and, if the colors are missing, turn on “Background graphics”.",
+      demoText: "Demo version: printing includes a watermark.",
+      demoLink: "Unlock printing without watermark",
+      previewTitle: "Preview",
+      tBoardingPass: "Boarding Pass",
+      tFrom: "From",
+      tTo: "To",
+      tPassenger: "Passenger",
+      tDate: "Date",
+      tClass: "Class",
+      tFlight: "Flight",
+      tBoarding: "Boarding",
+      tGate: "Gate",
+      tSeat: "Seat",
+      dateOptions: { day: "numeric", month: "short", year: "numeric" }
+    }
+  };
+  const LANG = "en";
+  const T = STRINGS[LANG];
+
+  const $ = (id) => document.getElementById(id);
+  let photoData = "";
+
+  /* Apply translations to static text */
+  document.querySelectorAll("[data-i18n]").forEach((el) => {
+    el.textContent = T[el.dataset.i18n];
+  });
+  document.querySelectorAll("[data-i18n-html]").forEach((el) => {
+    el.innerHTML = T[el.dataset.i18nHtml];
+  });
+  $("swatchGroup").setAttribute("aria-label", T.legLook);
+
+  const fields = ["airline", "passenger", "fromCity", "fromCode", "toCity", "toCode",
+                  "date", "boarding", "flight", "cls", "gate", "seat", "message"];
+
+  function formatValue(key) {
+    const v = $(key).value.trim();
+    if (key === "fromCode" || key === "toCode") return (v || "---").toUpperCase();
+    if (key === "date") {
+      if (!v) return "—";
+      const d = new Date(v + "T00:00:00");
+      return d.toLocaleDateString(T.locale, T.dateOptions);
+    }
+    if (key === "message") return v;
+    return v || "—";
+  }
+
+  function makeBarcode(seed) {
+    let h = 2166136261;
+    for (const ch of seed) { h ^= ch.charCodeAt(0); h = Math.imul(h, 16777619); }
+    h = h || 1;
+    const rnd = () => {
+      h ^= h << 13; h ^= h >>> 17; h ^= h << 5;
+      return (h >>> 0) / 4294967296;
+    };
+    let x = 0, bars = "";
+    while (x < 200) {
+      const w = 1 + Math.floor(rnd() * 3);
+      const gap = 1 + Math.floor(rnd() * 2);
+      if (x + w > 200) break;
+      bars += `<rect x="${x}" y="0" width="${w}" height="40"/>`;
+      x += w + gap;
+    }
+    return `<svg viewBox="0 0 200 40" preserveAspectRatio="none">${bars}</svg>`;
+  }
+
+  function update() {
+    document.querySelectorAll("[data-bind]").forEach((el) => {
+      el.textContent = formatValue(el.dataset.bind);
+    });
+    $("msg").classList.toggle("empty", !$("message").value.trim());
+
+    const photo = $("photo");
+    photo.classList.toggle("on", !!photoData);
+    photo.style.backgroundImage = photoData ? `url("${photoData}")` : "none";
+    $("photoDel").hidden = !photoData;
+
+    $("barcode").innerHTML = makeBarcode($("passenger").value + $("flight").value + $("date").value);
+  }
+
+  fields.forEach((id) => $(id).addEventListener("input", update));
+
+  /* Color */
+  document.querySelectorAll('input[name="tema"]').forEach((r) => {
+    r.addEventListener("change", () => {
+      document.documentElement.style.setProperty("--accent", r.value);
+    });
+  });
+
+  /* Print format */
+  $("paper").addEventListener("change", () => {
+    const letter = $("paper").value === "letter";
+    $("pageStyle").textContent = `@page { size: ${letter ? "letter" : "A4"} landscape; margin: 10mm; }`;
+  });
+
+  /* Photo: resized in the browser, never uploaded */
+  $("photoBtn").addEventListener("click", () => $("image").click());
+  $("image").addEventListener("change", (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = () => {
+      const img = new Image();
+      img.onload = () => {
+        const max = 1000;
+        const s = Math.min(1, max / Math.max(img.width, img.height));
+        const c = document.createElement("canvas");
+        c.width = Math.round(img.width * s);
+        c.height = Math.round(img.height * s);
+        c.getContext("2d").drawImage(img, 0, 0, c.width, c.height);
+        photoData = c.toDataURL("image/jpeg", 0.88);
+        update();
+      };
+      img.src = reader.result;
+    };
+    reader.readAsDataURL(file);
+    e.target.value = "";
+  });
+  $("photoDel").addEventListener("click", () => { photoData = ""; update(); });
+
+  /* Reset */
+  $("f").addEventListener("reset", () => {
+    photoData = "";
+    document.documentElement.style.setProperty("--accent", "#0f766e");
+    setTimeout(() => { $("paper").dispatchEvent(new Event("change")); update(); }, 0);
+  });
+
+  /* Print */
+  $("printBtn").addEventListener("click", () => window.print());
+
+  /* Demo */
+  if (DEMO_MODE) {
+    $("wm").classList.add("on");
+    $("demoBox").classList.add("on");
+    $("buyLink").href = PURCHASE_LINK;
+  }
+
+  update();
+</script>
+</body>
+</html>
